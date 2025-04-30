@@ -134,7 +134,7 @@ void emuc_bump (EMUC_RAW_INFO *info)
   info->devs[frame.CAN_port - 1]->stats.rx_packets++;
   info->devs[frame.CAN_port - 1]->stats.rx_bytes += cf.can_dlc;
 
-  netif_rx_ni(skb);
+  netif_rx(skb);
 
 } /* END: emuc_bump() */
 

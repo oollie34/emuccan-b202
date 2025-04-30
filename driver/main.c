@@ -274,10 +274,7 @@ static void __exit emuc_exit (void)
   kfree(emuc_devs);
   emuc_devs = NULL;
 
-  i = tty_unregister_ldisc(&emuc_ldisc);
-
-  if(i)
-    printk(KERN_ERR "emuc: can't unregister ldisc (err %d)\n", i);
+  tty_unregister_ldisc(&emuc_ldisc);
 
 } /* END: emuc_exit() */
 
@@ -493,16 +490,22 @@ static int emuc_ioctl (struct tty_struct *tty, unsigned int cmd, unsigned long a
     case INNO_XMIT_DELAY_CMD:
                         {
                           char delay_str[5]; /* 0 ~ 1000 */
-
-                          copy_from_user(delay_str, (void __user *)arg, 5);
+                          int ret;
+                          long tmp;
+                          
+                          ret = copy_from_user(delay_str, (void __user *)arg, 5);
+                          if (ret)
+                            return -EFAULT;
                           delay_str[4] = '\0';
-                          kstrtol(delay_str, 10, &xmit_delay);
-
+                          
+                          ret = kstrtol(delay_str, 10, &tmp);
+                          if (ret)
+                            return ret;
+                          xmit_delay = tmp;
+                          
                           printk("----------> INNO_XMIT_DELAY_CMD ioctl(), xmit_delay = %lu\n", xmit_delay);
-                          if(xmit_delay > 1000)
-                          {
-                            return -1;
-                          }
+                          if (xmit_delay > 1000)
+                            return -EINVAL;
                           return 0;
                         }
 
