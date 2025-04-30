@@ -106,15 +106,15 @@ module_exit(emuc_exit);
 /*=====================================================================*/
 static int  emuc_open  (struct tty_struct *tty);
 static void emuc_close (struct tty_struct *tty);
-static int  emuc_hangup(struct tty_struct *tty);
-static int  emuc_ioctl (struct tty_struct *tty, struct file *file, unsigned int cmd, unsigned long arg);
-static void emuc_receive_buf (struct tty_struct *tty, const unsigned char *cp, char *fp, int count);
+static void  emuc_hangup(struct tty_struct *tty);
+static int  emuc_ioctl (struct tty_struct *tty, unsigned int cmd, unsigned long arg);
+static void emuc_receive_buf (struct tty_struct *tty, const u8 *cp, const u8 *fp, size_t count);
 static void emuc_write_wakeup(struct tty_struct *tty);
 
 static struct tty_ldisc_ops emuc_ldisc =
 {
   .owner  = THIS_MODULE,
-  .magic  = TTY_LDISC_MAGIC,
+  .num    = N_EMUC,
   .name   = "emuccan",
   .open   = emuc_open,
   .close  = emuc_close,
@@ -180,7 +180,7 @@ static int __init emuc_init (void)
     return -ENOMEM;
 
   /* Fill in our line protocol discipline, and register it */
-  status = tty_register_ldisc(N_EMUC, &emuc_ldisc);
+  status = tty_register_ldisc(&emuc_ldisc);
 
   if(status)
   {
@@ -274,7 +274,7 @@ static void __exit emuc_exit (void)
   kfree(emuc_devs);
   emuc_devs = NULL;
 
-  i = tty_unregister_ldisc(N_EMUC);
+  i = tty_unregister_ldisc(&emuc_ldisc);
 
   if(i)
     printk(KERN_ERR "emuc: can't unregister ldisc (err %d)\n", i);
@@ -282,7 +282,7 @@ static void __exit emuc_exit (void)
 } /* END: emuc_exit() */
 
 /*---------------------------------------------------------------------------------------------------*/
-static void emuc_receive_buf (struct tty_struct *tty, const unsigned char *cp, char *fp, int count)
+static void emuc_receive_buf (struct tty_struct *tty, const u8 *cp, const u8 *fp, size_t count)
 {
   EMUC_RAW_INFO *info = (EMUC_RAW_INFO *) tty->disc_data;
 
@@ -464,18 +464,17 @@ static void emuc_close (struct tty_struct *tty)
 
 
 /*---------------------------------------------------------------------------------------------------*/
-static int emuc_hangup (struct tty_struct *tty)
+static void emuc_hangup (struct tty_struct *tty)
 {
 #if _DBG_FUNC
   print_func_trace(__LINE__, __FUNCTION__);
 #endif
 
   emuc_close(tty);
-  return 0;
 }
 
 /*---------------------------------------------------------------------------------------------------*/
-static int emuc_ioctl (struct tty_struct *tty, struct file *file, unsigned int cmd, unsigned long arg)
+static int emuc_ioctl (struct tty_struct *tty, unsigned int cmd, unsigned long arg)
 {
   int            channel;
   unsigned int   tmp;
@@ -523,7 +522,7 @@ static int emuc_ioctl (struct tty_struct *tty, struct file *file, unsigned int c
                         return -EINVAL;
 
     default:
-                        return tty_mode_ioctl(tty, file, cmd, arg);
+                        return tty_mode_ioctl(tty, cmd, arg);
   }
 }
 
